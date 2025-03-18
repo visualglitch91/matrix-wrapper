@@ -2,7 +2,7 @@
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 const { contextBridge, ipcRenderer } = require("electron");
 
-contextBridge.exposeInMainWorld("electron", {
+contextBridge.exposeInMainWorld("webAppBridge", {
   requestWindowFocus: (data) => {
     ipcRenderer.send("window-focus-requested", data);
   },

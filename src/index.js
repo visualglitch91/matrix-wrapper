@@ -1,7 +1,9 @@
 const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const fetch = require("node-fetch").default;
 const path = require("node:path");
 const { exec } = require("child_process");
 const webAppUrl = process.env.WEB_APP_URL;
+const webAppCustomCss = process.env.WEB_APP_CUSTOM_CSS;
 
 // Helper function to execute shell commands
 const sh = (cmd) => {
@@ -64,14 +66,22 @@ const createWindow = () => {
   mainWindow.webContents.on("did-finish-load", async () => {
     mainWindow.webContents.session.setSpellCheckerEnabled(false);
 
+    const cssContent = webAppCustomCss
+      ? await fetch(webAppCustomCss)
+          .then((res) => res.text())
+          .catch(() => "")
+      : "";
+
     mainWindow.webContents.executeJavaScript(`
       const OriginalNotification = window.Notification;
 
       const NewNotification = function(title, opt) {
         const notification = new OriginalNotification(title, opt);
+        
         notification.addEventListener('click', () => {
-          window.electron.requestWindowFocus();
+          window.webAppBridge.requestWindowFocus();
         });
+        
         return notification;
       };
 
@@ -82,7 +92,11 @@ const createWindow = () => {
       });
 
       window.Notification = NewNotification;
-      window.focus = () =>  window.electron.requestWindowFocus();
+      window.focus = () =>  window.webAppBridge.requestWindowFocus();
+
+      const style = document.createElement('style');
+      style.textContent = \`${cssContent}\`;
+      document.head.appendChild(style);
     `);
   });
 };
